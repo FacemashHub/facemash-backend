@@ -1,28 +1,37 @@
-use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
+#[macro_use]
+extern crate log;
 
-#[get("/")]
-async fn hello() -> impl Responder {
-    HttpResponse::Ok().body("Hello world!")
+use actix_web::{post, web, App, Error, HttpResponse, HttpServer, Responder};
+use serde::{Deserialize, Serialize};
+
+mod logger;
+
+#[derive(Debug, Serialize, Deserialize)]
+struct DuplicateReq {
+    name: String,
+    duplicate_time: isize,
 }
 
-#[post("/echo")]
-async fn echo(req_body: String) -> impl Responder {
-    HttpResponse::Ok().body(req_body)
+#[derive(Debug, Serialize, Deserialize)]
+struct DuplicateResp {
+    res: String,
 }
 
-async fn manual_hello() -> impl Responder {
-    HttpResponse::Ok().body("Hey there!")
+#[post("/duplicate")]
+async fn duplicate(req: web::Json<DuplicateReq>) -> Result<impl Responder, Error> {
+    log::debug!("req: {:?}", &req);
+
+    Ok(HttpResponse::Ok().json(DuplicateResp {
+        res: req.name.repeat(req.duplicate_time as usize),
+    }))
 }
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    HttpServer::new(|| {
-        App::new()
-            .service(hello)
-            .service(echo)
-            .route("/hey", web::get().to(manual_hello))
-    })
-    .bind(("127.0.0.1", 8080))?
-    .run()
-    .await
+    logger::init();
+
+    HttpServer::new(|| App::new().service(duplicate))
+        .bind(("0.0.0.0", 8080))?
+        .run()
+        .await
 }
