@@ -1,37 +1,36 @@
 #[macro_use]
 extern crate log;
 
-use actix_web::{post, web, App, Error, HttpResponse, HttpServer, Responder};
-use serde::{Deserialize, Serialize};
+use actix_web::{middleware, web, App, HttpServer};
 
+use crate::controller::duplicate::duplicate;
+use crate::controller::upload_files::{index, save_file};
+
+mod controller;
+mod dao;
+mod entity;
 mod logger;
-
-#[derive(Debug, Serialize, Deserialize)]
-struct DuplicateReq {
-    name: String,
-    duplicate_time: isize,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct DuplicateResp {
-    res: String,
-}
-
-#[post("/duplicate")]
-async fn duplicate(req: web::Json<DuplicateReq>) -> Result<impl Responder, Error> {
-    log::debug!("req: {:?}", &req);
-
-    Ok(HttpResponse::Ok().json(DuplicateResp {
-        res: req.name.repeat(req.duplicate_time as usize),
-    }))
-}
+mod service;
+mod utils;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     logger::init();
 
-    HttpServer::new(|| App::new().service(duplicate))
-        .bind(("0.0.0.0", 8080))?
-        .run()
-        .await
+    // std::env::set_var("RUST_LOG", "info");
+    std::fs::create_dir_all("./tmp")?;
+
+    HttpServer::new(|| {
+        App::new()
+            .wrap(middleware::Logger::default())
+            .service(duplicate)
+            .service(
+                web::resource("/")
+                    .route(web::get().to(index))
+                    .route(web::post().to(save_file)),
+            )
+    })
+    .bind(("0.0.0.0", 8080))?
+    .run()
+    .await
 }
