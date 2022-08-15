@@ -1,3 +1,4 @@
+#![feature(once_cell)]
 #[macro_use]
 extern crate log;
 
@@ -10,6 +11,7 @@ mod controller;
 mod dao;
 mod entity;
 mod logger;
+mod resource;
 mod service;
 mod utils;
 
