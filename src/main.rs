@@ -3,10 +3,14 @@
 extern crate log;
 
 use actix_web::{middleware, web, App, HttpServer};
+use dotenv::dotenv;
+use mongodb::bson::doc;
 
-use crate::controller::duplicate::duplicate;
+use crate::controller::face_info_controller;
 use crate::controller::upload_files::{index, save_file};
+use crate::resource::mongo;
 
+mod config;
 mod controller;
 mod dao;
 mod entity;
@@ -18,14 +22,25 @@ mod utils;
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     logger::init();
+    dotenv().ok();
 
-    // std::env::set_var("RUST_LOG", "info");
-    std::fs::create_dir_all("./tmp")?;
+    // std::fs::create_dir_all("./tmp")?;
+
+    mongo::MONGO_CLIENT
+        .get()
+        .await
+        .database("admin")
+        .run_command(doc! {"ping": 1}, None)
+        .await
+        .unwrap();
+    println!("Mongo connected successfully.");
 
     HttpServer::new(|| {
         App::new()
             .wrap(middleware::Logger::default())
-            .service(duplicate)
+            .service(face_info_controller::get_face_info_randomly)
+            .service(face_info_controller::get_face_info_by_id)
+            .service(face_info_controller::add_face_info)
             .service(
                 web::resource("/")
                     .route(web::get().to(index))

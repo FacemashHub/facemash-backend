@@ -1,3 +1,6 @@
+use std::env;
+
+use crate::config::LOG_LEVEL;
 use log::{Level, LevelFilter, Metadata, Record};
 
 struct Logger;
@@ -6,21 +9,15 @@ pub fn init() {
     static LOGGER: Logger = Logger;
     log::set_logger(&LOGGER).unwrap();
 
-    log::set_max_level(match option_env!("LOG") {
-        Some("ERROR") => LevelFilter::Error,
-        Some("WARN") => LevelFilter::Warn,
-        Some("INFO") => LevelFilter::Info,
-        Some("DEBUG") => LevelFilter::Debug,
-        Some("TRACE") => LevelFilter::Trace,
-        // _ => LevelFilter::Off,
-        _ => LevelFilter::Trace,
+    let log_level: String = env::var(LOG_LEVEL).unwrap_or_else(|_| String::from("INFO"));
+    log::set_max_level(match log_level.as_str() {
+        "ERROR" => LevelFilter::Error,
+        "WARN" => LevelFilter::Warn,
+        "INFO" => LevelFilter::Info,
+        "DEBUG" => LevelFilter::Debug,
+        "TRACE" => LevelFilter::Trace,
+        _ => LevelFilter::Info,
     });
-
-    error!(target:"main", "this is a error");
-    warn!(target:"main", "this is a warning");
-    info!("this is a information");
-    debug!("this is a debug");
-    trace!("this is a trace");
 }
 
 impl log::Log for Logger {
