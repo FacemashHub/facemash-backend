@@ -1,28 +1,53 @@
-use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
+#![feature(once_cell)]
+#[macro_use]
+extern crate log;
 
-#[get("/")]
-async fn hello() -> impl Responder {
-    HttpResponse::Ok().body("Hello world!")
-}
+use actix_web::{middleware, web, App, HttpServer};
+use dotenv::dotenv;
+use mongodb::bson::doc;
 
-#[post("/echo")]
-async fn echo(req_body: String) -> impl Responder {
-    HttpResponse::Ok().body(req_body)
-}
+use crate::controller::face_info_controller;
+use crate::controller::upload_files::{index, save_file};
+use crate::resource::mongo;
 
-async fn manual_hello() -> impl Responder {
-    HttpResponse::Ok().body("Hey there!")
-}
+mod config;
+mod controller;
+mod dao;
+mod entity;
+mod logger;
+mod resource;
+mod service;
+mod utils;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    logger::init();
+    dotenv().ok();
+
+    // std::fs::create_dir_all("./tmp")?;
+
+    mongo::MONGO_CLIENT
+        .get()
+        .await
+        .database("admin")
+        .run_command(doc! {"ping": 1}, None)
+        .await
+        .unwrap();
+    println!("Mongo connected successfully.");
+
     HttpServer::new(|| {
         App::new()
-            .service(hello)
-            .service(echo)
-            .route("/hey", web::get().to(manual_hello))
+            .wrap(middleware::Logger::default())
+            .service(face_info_controller::get_face_info_randomly)
+            .service(face_info_controller::get_face_info_by_id)
+            .service(face_info_controller::add_face_info)
+            .service(
+                web::resource("/")
+                    .route(web::get().to(index))
+                    .route(web::post().to(save_file)),
+            )
     })
-    .bind(("127.0.0.1", 8080))?
+    .bind(("0.0.0.0", 8080))?
     .run()
     .await
 }
