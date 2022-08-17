@@ -30,6 +30,7 @@ pub async fn get_one_face_info_by_doc_filter(
 }
 
 /// Update the face_info by id.
+#[allow(dead_code)]
 pub async fn update_face_info_by_doc_filter(
     doc_filter: Document,
     face_info: &FaceInfo,

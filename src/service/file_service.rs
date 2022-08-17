@@ -2,7 +2,7 @@ use std::fs;
 use std::io::Write;
 
 use actix_multipart::Multipart;
-use actix_web::{error, web, Error, HttpResponse};
+use actix_web::{error, web, Error};
 use futures_util::TryStreamExt as _;
 
 pub static SAVE_DIR: &str = "./tmp";
@@ -61,18 +61,4 @@ pub async fn delete_file(filepath: &str) {
 
 pub fn get_local_filepath(face_info_id: &str, filename: &str) -> String {
     format!("{SAVE_DIR}/{face_info_id}-{filename}")
-}
-
-pub async fn index() -> HttpResponse {
-    let html = r#"<html>
-        <head><title>Upload Test</title></head>
-        <body>
-            <form target="/" method="post" enctype="multipart/form-data">
-                <input type="file" multiple name="file"/>
-                <button type="submit">Submit</button>
-            </form>
-        </body>
-    </html>"#;
-
-    HttpResponse::Ok().body(html)
 }

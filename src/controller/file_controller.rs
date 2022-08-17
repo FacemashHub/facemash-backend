@@ -59,13 +59,15 @@ pub async fn save_file(payload: Multipart) -> Result<HttpResponse, Error> {
     };
 
     // Step 3: Save faceInfo
-    let mut face_info = FaceInfo::default();
-    face_info.file_uri = file_uri;
-    face_info.file_name = file_name;
-    face_info.id = face_info_id;
-    face_info.uri_type = Local;
-    face_info.md5 = file_md5;
-    face_info.created_on = chrono::Local::now().timestamp_millis();
+    let face_info = FaceInfo {
+        file_uri,
+        file_name,
+        id: face_info_id,
+        uri_type: Local,
+        md5: file_md5,
+        created_on: chrono::Local::now().timestamp_millis(),
+        ..Default::default()
+    };
 
     match face_info_service::add_face_info(&face_info).await {
         Ok(_) => {
@@ -74,7 +76,7 @@ pub async fn save_file(payload: Multipart) -> Result<HttpResponse, Error> {
         }
         Err(err) => {
             error!("Failed to call add_face_info, error: {:?}", err);
-            return HttpResponse::InternalServerError().await;
+            HttpResponse::InternalServerError().await
         }
     }
 }
