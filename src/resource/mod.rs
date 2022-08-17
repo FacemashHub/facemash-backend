@@ -20,8 +20,5 @@ async fn check_mongo() {
 }
 
 async fn check_id_generator() {
-    info!(
-        "Id generate success: {}.",
-        id_generator::ID_GENERATOR_BUCKET.lock().unwrap().get_id()
-    )
+    info!("Id generate success: {}.", id_generator::get_id().await)
 }

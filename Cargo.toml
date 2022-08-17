@@ -18,6 +18,8 @@ actix-web = "4"
 actix-rt = "2.7.0"
 
 log = "0.4"
+chrono = "0.4"
+rust-crypto = "0.2.36"
 serde = { version = "1.0", features = ["derive"] }
 futures-util = { version = "0.3.17", default-features = false, features = ["std"] }
 sanitize-filename = "0.4"

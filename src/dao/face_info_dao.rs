@@ -1,6 +1,6 @@
 use futures_util::StreamExt;
-use mongodb::bson::doc;
-use mongodb::results::InsertOneResult;
+use mongodb::bson::{doc, Document};
+use mongodb::results::{InsertOneResult, UpdateResult};
 use mongodb::{bson, Collection};
 
 use crate::entity::face_info::FaceInfo;
@@ -17,14 +17,32 @@ pub async fn add_face_info(face_info: &FaceInfo) -> mongodb::error::Result<Inser
     collection.insert_one(face_info, None).await
 }
 
-/// Gets the face_info by id.
-pub async fn get_face_info_by_id(id: &str) -> mongodb::error::Result<Option<FaceInfo>> {
+/// Gets the face_info by doc filter.
+pub async fn get_one_face_info_by_doc_filter(
+    doc_filter: Document,
+) -> mongodb::error::Result<Option<FaceInfo>> {
     let collection = MONGO_CLIENT
         .get()
         .await
         .database(FaceInfo::db_name())
         .collection(FaceInfo::coll_name());
-    collection.find_one(doc! { "id": id }, None).await
+    collection.find_one(doc_filter, None).await
+}
+
+/// Update the face_info by id.
+pub async fn update_face_info_by_doc_filter(
+    doc_filter: Document,
+    face_info: &FaceInfo,
+) -> mongodb::error::Result<UpdateResult> {
+    let collection: Collection<FaceInfo> = MONGO_CLIENT
+        .get()
+        .await
+        .database(FaceInfo::db_name())
+        .collection(FaceInfo::coll_name());
+
+    let update = doc! {"$set": bson::to_bson(face_info).unwrap()};
+
+    collection.update_one(doc_filter, update, None).await
 }
 
 /// Get face_info randomly
