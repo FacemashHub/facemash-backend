@@ -24,16 +24,9 @@ async fn main() -> std::io::Result<()> {
     logger::init();
     dotenv().ok();
 
-    // std::fs::create_dir_all("./tmp")?;
+    resource::check_resources().await;
 
-    mongo::MONGO_CLIENT
-        .get()
-        .await
-        .database("admin")
-        .run_command(doc! {"ping": 1}, None)
-        .await
-        .unwrap();
-    println!("Mongo connected successfully.");
+    // std::fs::create_dir_all("./tmp")?;
 
     HttpServer::new(|| {
         App::new()
