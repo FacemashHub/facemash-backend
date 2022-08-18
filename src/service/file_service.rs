@@ -1,11 +1,12 @@
 use std::fs;
+use std::fs::File;
 use std::io::Write;
 
 use actix_multipart::Multipart;
 use actix_web::{error, web, Error};
 use futures_util::TryStreamExt as _;
 
-pub static SAVE_DIR: &str = "./tmp";
+const SAVE_DIR: &str = "./tmp";
 
 pub async fn init_local_directory() {
     fs::create_dir_all(SAVE_DIR).unwrap()
@@ -34,11 +35,10 @@ pub async fn save_file_in_payload(
             }
         };
 
-        // .map_or_else(|| Uuid::new_v4().to_string(), sanitize_filename::sanitize);
         let filepath = get_local_filepath(face_info_id, &filename);
 
         // File::create is blocking operation, use threadpool
-        let mut f = web::block(|| std::fs::File::create(filepath)).await??;
+        let mut f = web::block(|| File::create(filepath)).await??;
 
         // Field in turn is stream of *Bytes* object
         while let Some(chunk) = field.try_next().await? {

@@ -48,7 +48,7 @@ pub async fn get_face_info_randomly(
 pub async fn get_face_info_by_id(
     req: web::Json<GetFaceInfoByIdReq>,
 ) -> Result<impl Responder, Error> {
-    log::debug!("req: {:?}", &req);
+    info!("req: {:?}", &req);
 
     let face_info_id = &req.id;
     if face_info_id.is_empty() {
@@ -73,7 +73,7 @@ pub async fn get_face_info_by_id(
 
 #[post("/add_face_info")]
 pub async fn add_face_info(req: web::Json<AddFaceInfoReq>) -> Result<impl Responder, Error> {
-    log::debug!("req: {:?}", &req);
+    info!("req: {:?}", &req);
 
     match face_info_service::add_face_info(&req.face_info).await {
         Ok(_) => Ok(HttpResponse::Ok().json(AddFaceInfoResp {})),

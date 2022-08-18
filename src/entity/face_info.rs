@@ -3,9 +3,9 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum UriType {
     Local,
-    Cos,
-    Oss,
-    S3,
+    // Cos,
+    // Oss,
+    // S3,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
