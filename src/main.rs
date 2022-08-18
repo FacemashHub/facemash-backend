@@ -20,8 +20,8 @@ mod utils;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    logger::init();
     dotenv().ok();
+    logger::init();
 
     resource::check_resources().await;
     service::init_file_service().await;
