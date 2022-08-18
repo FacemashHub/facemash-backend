@@ -1,2 +1,2 @@
 pub mod face_info_controller;
-pub mod upload_files;
+pub mod file_controller;

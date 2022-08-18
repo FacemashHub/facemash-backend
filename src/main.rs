@@ -2,12 +2,11 @@
 #[macro_use]
 extern crate log;
 
-use actix_web::{middleware, web, App, HttpServer};
+use actix_web::{middleware, App, HttpServer};
 use dotenv::dotenv;
 use mongodb::bson::doc;
 
-use crate::controller::face_info_controller;
-use crate::controller::upload_files::{index, save_file};
+use crate::controller::{face_info_controller, file_controller};
 use crate::resource::mongo;
 
 mod config;
@@ -24,16 +23,8 @@ async fn main() -> std::io::Result<()> {
     logger::init();
     dotenv().ok();
 
-    // std::fs::create_dir_all("./tmp")?;
-
-    mongo::MONGO_CLIENT
-        .get()
-        .await
-        .database("admin")
-        .run_command(doc! {"ping": 1}, None)
-        .await
-        .unwrap();
-    println!("Mongo connected successfully.");
+    resource::check_resources().await;
+    service::init_file_service().await;
 
     HttpServer::new(|| {
         App::new()
@@ -41,11 +32,7 @@ async fn main() -> std::io::Result<()> {
             .service(face_info_controller::get_face_info_randomly)
             .service(face_info_controller::get_face_info_by_id)
             .service(face_info_controller::add_face_info)
-            .service(
-                web::resource("/")
-                    .route(web::get().to(index))
-                    .route(web::post().to(save_file)),
-            )
+            .service(file_controller::save_file)
     })
     .bind(("0.0.0.0", 8080))?
     .run()

@@ -1,6 +1,7 @@
 use actix_web::{post, web, Error, HttpResponse, Responder};
 use serde::{Deserialize, Serialize};
 
+use crate::doc;
 use crate::entity::face_info::FaceInfo;
 use crate::service::face_info_service;
 
@@ -54,18 +55,19 @@ pub async fn get_face_info_by_id(
         return HttpResponse::NotFound().await;
     }
 
-    let face_info = match face_info_service::get_face_info_by_id(face_info_id).await {
-        Ok(face_info) => match face_info {
-            None => {
-                return HttpResponse::NotFound().await;
+    let face_info =
+        match face_info_service::get_one_face_info_by_doc_filter(doc! {"id": face_info_id}).await {
+            Ok(face_info) => match face_info {
+                None => {
+                    return HttpResponse::NotFound().await;
+                }
+                Some(face_info) => face_info,
+            },
+            Err(err) => {
+                log::error!("Error: {:?}", err);
+                return HttpResponse::InternalServerError().await;
             }
-            Some(face_info) => face_info,
-        },
-        Err(err) => {
-            log::error!("Error: {:?}", err);
-            return HttpResponse::InternalServerError().await;
-        }
-    };
+        };
     Ok(HttpResponse::Ok().json(GetFaceInfoByIdResp { face_info }))
 }
 
