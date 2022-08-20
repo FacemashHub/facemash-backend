@@ -1,4 +1,3 @@
-#![feature(once_cell)]
 #[macro_use]
 extern crate log;
 
@@ -32,8 +31,9 @@ async fn main() -> std::io::Result<()> {
             .service(face_info_controller::get_face_info_randomly)
             .service(face_info_controller::get_face_info_by_id)
             .service(face_info_controller::add_face_info)
-            .service(file_controller::save_file)
-            .service(file_controller::download_file)
+            .service(file_controller::create_file_resource_by_stream)
+            .service(file_controller::create_file_resource)
+            .service(file_controller::download_local_file)
     })
     .bind(("0.0.0.0", 8080))?
     .run()

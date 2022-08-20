@@ -15,5 +15,5 @@ pub async fn get_one_face_info_by_doc_filter(
 }
 
 pub async fn add_face_info(face_info: &FaceInfo) -> mongodb::error::Result<InsertOneResult> {
-    face_info_dao::add_face_info(face_info).await
+    face_info_dao::add_one_face_info(face_info).await
 }

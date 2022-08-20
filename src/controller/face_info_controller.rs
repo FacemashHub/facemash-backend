@@ -1,8 +1,10 @@
+use actix_web::error::{ErrorBadRequest, ErrorInternalServerError};
 use actix_web::{post, web, Error, HttpResponse, Responder};
 use serde::{Deserialize, Serialize};
 
 use crate::doc;
 use crate::entity::face_info::FaceInfo;
+use crate::resource;
 use crate::service::face_info_service;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -29,7 +31,9 @@ pub struct AddFaceInfoReq {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct AddFaceInfoResp {}
+pub struct AddFaceInfoResp {
+    face_info_id: String,
+}
 
 #[post("/get_face_info_randomly")]
 pub async fn get_face_info_randomly(
@@ -72,14 +76,37 @@ pub async fn get_face_info_by_id(
 }
 
 #[post("/add_face_info")]
-pub async fn add_face_info(req: web::Json<AddFaceInfoReq>) -> Result<impl Responder, Error> {
+pub async fn add_face_info(mut req: web::Json<AddFaceInfoReq>) -> Result<impl Responder, Error> {
     info!("req: {:?}", &req);
 
+    let face_info_id = resource::id_generator::get_id().await;
+    req.face_info.id = face_info_id;
+
+    check_add_face_info_param(&req.face_info).await?;
+
     match face_info_service::add_face_info(&req.face_info).await {
-        Ok(_) => Ok(HttpResponse::Ok().json(AddFaceInfoResp {})),
+        Ok(_) => Ok(HttpResponse::Ok().json(AddFaceInfoResp {
+            face_info_id: req.face_info.id.clone(),
+        })),
         Err(err) => {
             log::error!("Error: {:?}", err);
             HttpResponse::InternalServerError().await
         }
     }
+}
+
+async fn check_add_face_info_param(face_info: &FaceInfo) -> Result<(), Error> {
+    if face_info.id.is_empty() {
+        return Err(ErrorInternalServerError("generate id failed"));
+    }
+
+    if face_info.file_id.is_empty() {
+        return Err(ErrorBadRequest("file id is empty"));
+    }
+
+    if face_info.star_name.is_empty() {
+        return Err(ErrorBadRequest("start name is empty"));
+    }
+
+    Ok(())
 }
