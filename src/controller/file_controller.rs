@@ -90,6 +90,7 @@ pub async fn create_file_resource_by_stream(payload: Multipart) -> Result<HttpRe
     match file_resource_service::create_file_resource(&FileResource {
         id: file_resource_id.clone(),
         md5: file_md5,
+        created_on: chrono::Utc::now().timestamp(),
         file_name,
         file_uri,
         ..FileResource::default()
@@ -114,6 +115,7 @@ pub async fn create_file_resource(
 
     let file_resource_id = resource::id_generator::get_id().await;
     req.file_resource.id = file_resource_id;
+    req.file_resource.created_on = chrono::Utc::now().timestamp();
 
     check_create_file_resource_req(&req.file_resource).await?;
 
