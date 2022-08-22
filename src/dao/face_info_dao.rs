@@ -8,7 +8,7 @@ use crate::mongo;
 use crate::resource::mongo::MONGO_CLIENT;
 
 /// Adds a new face_info to the "face_info" collection in the database.
-pub async fn add_face_info(face_info: &FaceInfo) -> mongodb::error::Result<InsertOneResult> {
+pub async fn add_one_face_info(face_info: &FaceInfo) -> mongodb::error::Result<InsertOneResult> {
     let collection: Collection<FaceInfo> = mongo::MONGO_CLIENT
         .get()
         .await
