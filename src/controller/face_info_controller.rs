@@ -75,7 +75,7 @@ pub async fn get_face_info_randomly(
                     return HttpResponse::InternalServerError().await;
                 }
             },
-            face_info: face_info,
+            face_info,
         });
     }
 
