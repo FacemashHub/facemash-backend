@@ -8,6 +8,7 @@ use mongodb::bson::doc;
 use crate::controller::{face_info_controller, file_controller};
 use crate::resource::mongo;
 
+mod algorithm;
 mod config;
 mod controller;
 mod dao;
