@@ -2,6 +2,7 @@
 //!
 //! This module contains all of the standard methods that would be used to calculate elo.
 //! The module provides the constants WIN, LOSE and DRAW.
+#![allow(dead_code)]
 
 use crate::algorithm::k_factor::{fide_k, icc_k, uscf_k};
 
