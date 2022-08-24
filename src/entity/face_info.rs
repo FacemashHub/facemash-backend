@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+const DEFAULT_SCORE: f64 = 1400.0;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct FaceInfo {
@@ -25,7 +27,7 @@ impl Default for FaceInfo {
             star_name: "".to_string(),
             upvote_count: 0,
             downvote_count: 0,
-            score: 0.0,
+            score: DEFAULT_SCORE,
             creator: "".to_string(),
             updater: "".to_string(),
             created_on: 0,

@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use futures_util::StreamExt;
 use mongodb::bson::{doc, Document};
 use mongodb::results::{InsertOneResult, UpdateResult};
