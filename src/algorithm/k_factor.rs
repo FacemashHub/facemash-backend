@@ -16,7 +16,7 @@ pub fn fide_k(rating: EloScore, game_counts: u64) -> u64 {
     }
 }
 
-/// The USCF uses three differnt k_factors depending on you rating.
+/// The USCF uses three different k_factors depending on you rating.
 pub fn uscf_k(rating: EloScore) -> u64 {
     if rating < 2100 {
         32
