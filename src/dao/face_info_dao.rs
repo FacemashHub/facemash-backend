@@ -29,10 +29,31 @@ pub async fn get_one_face_info_by_doc_filter(
     collection.find_one(doc_filter, None).await
 }
 
+/// Get multiple face_info by doc filter.
+pub async fn get_face_infos_by_doc_filter(
+    doc_filter: Document,
+) -> Result<Vec<FaceInfo>, mongodb::error::Error> {
+    let collection = MONGO_CLIENT
+        .get()
+        .await
+        .database(FaceInfo::db_name())
+        .collection(FaceInfo::coll_name());
+
+    let mut ret_face_infos: Vec<FaceInfo> = Vec::new();
+    let mut results = collection.find(doc_filter, None).await?;
+
+    while let Some(result) = results.next().await {
+        // Use serde to deserialize into the MovieSummary struct:
+        let face_info: FaceInfo = bson::from_document(result?)?;
+        ret_face_infos.push(face_info);
+    }
+    Ok(ret_face_infos)
+}
+
 /// Update the face_info by id.
 pub async fn update_face_info_by_doc_filter(
     doc_filter: Document,
-    face_info: &FaceInfo,
+    update_info: Document,
 ) -> mongodb::error::Result<UpdateResult> {
     let collection: Collection<FaceInfo> = MONGO_CLIENT
         .get()
@@ -40,9 +61,7 @@ pub async fn update_face_info_by_doc_filter(
         .database(FaceInfo::db_name())
         .collection(FaceInfo::coll_name());
 
-    let update = doc! {"$set": bson::to_bson(face_info).unwrap()};
-
-    collection.update_one(doc_filter, update, None).await
+    collection.update_one(doc_filter, update_info, None).await
 }
 
 /// Get face_info randomly

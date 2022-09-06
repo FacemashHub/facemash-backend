@@ -44,6 +44,12 @@ pub struct AddFaceInfoResp {
     face_info_id: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct VoteFaceInfoReq {
+    win_face_info_id: String,
+    lose_face_info_id: String,
+}
+
 #[post("/get_face_info_randomly")]
 pub async fn get_face_info_randomly(
     mut req: web::Json<GetRandomFaceInfoRandomlyReq>,
@@ -151,6 +157,20 @@ pub async fn add_face_info(mut req: web::Json<AddFaceInfoReq>) -> Result<impl Re
             HttpResponse::InternalServerError().await
         }
     }
+}
+
+#[post("/vote_face_info")]
+pub async fn vote_face_info(mut req: web::Json<VoteFaceInfoReq>) -> Result<impl Responder, Error> {
+    info!("req: {:?}", &req);
+
+    // Step 1: find corresponding face_info
+    let faceInfos = face_info_service::get_face_infos_by_doc_filter(doc! {
+        {"id": req.win_face_info_id},
+        {"id": req.lose_face_info_id},
+    })
+    .await?;
+
+    Ok(())
 }
 
 async fn check_add_face_info_param(face_info: &FaceInfo) -> Result<(), Error> {
