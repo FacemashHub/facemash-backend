@@ -1,17 +1,17 @@
-use std::collections::HashMap;
+use crate::algorithm::elo_rating::{compete_uscf, EloScore, WIN};
 use actix_web::error::{ErrorBadRequest, ErrorInternalServerError, ErrorNotFound};
 use actix_web::{post, web, Error, HttpResponse, Responder};
 use serde::{Deserialize, Serialize};
-use crate::algorithm::elo_rating::{compete_uscf, EloScore, WIN};
+use std::collections::HashMap;
 
-use crate::{doc, entity};
 use crate::dao::rating_log_dao::add_rating_logs;
 use crate::entity::face_info::FaceInfo;
 use crate::entity::file_resource::FileResource;
-use crate::entity::rating_log::{RatingLog};
+use crate::entity::rating_log::RatingLog;
 use crate::resource;
-use crate::service::{face_info_service, file_resource_service};
 use crate::service::face_info_service::update_face_info_rating;
+use crate::service::{face_info_service, file_resource_service};
+use crate::{doc, entity};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FaceAndFileResourceInfo {
@@ -76,7 +76,7 @@ pub async fn get_face_info_randomly(
             file_resource: match file_resource_service::get_one_file_resource_by_doc_filter(
                 doc! {"id": &face_info.file_id},
             )
-                .await
+            .await
             {
                 Ok(file_info) => match file_info {
                     None => FileResource::default(),
@@ -124,7 +124,7 @@ pub async fn get_face_info_by_id(
     let file_resource = match file_resource_service::get_one_file_resource_by_doc_filter(
         doc! {"id": &face_info.file_id},
     )
-        .await
+    .await
     {
         Ok(file_info) => match file_info {
             None => FileResource::default(),
@@ -178,65 +178,83 @@ pub async fn vote_face_info(req: web::Json<VoteFaceInfoReq>) -> Result<impl Resp
     let filter_doc = doc! {
         "id" :{"$in": [req.win_face_info_id.as_str(), req.lose_face_info_id.as_str()]}
     };
-    let face_info_map: HashMap<String, FaceInfo> = match face_info_service::get_face_infos_by_doc_filter(filter_doc).await {
-        Ok(res) => {
-            if res.len() < 2 {
-                return Err(ErrorNotFound("FaceInfo not found!"));
-            }
+    let face_info_map: HashMap<String, FaceInfo> =
+        match face_info_service::get_face_infos_by_doc_filter(filter_doc).await {
+            Ok(res) => {
+                if res.len() < 2 {
+                    return Err(ErrorNotFound("FaceInfo not found!"));
+                }
 
-            let mut ret_map = HashMap::new();
-            for x in res {
-                ret_map.insert(x.id.clone(), x);
+                let mut ret_map = HashMap::new();
+                for x in res {
+                    ret_map.insert(x.id.clone(), x);
+                }
+                ret_map
             }
-            ret_map
-        }
-        Err(err) => {
-            log::error!("Error: {:?}", err);
-            return HttpResponse::InternalServerError().await;
-        }
-    };
+            Err(err) => {
+                log::error!("Error: {:?}", err);
+                return HttpResponse::InternalServerError().await;
+            }
+        };
 
     // Step 2：Calculate Score
     let win_face_info = match face_info_map.get(req.win_face_info_id.as_str()) {
         None => {
             return Err(ErrorNotFound("Winner FaceInfo not found!"));
         }
-        Some(win_face_info) => { win_face_info }
+        Some(win_face_info) => win_face_info,
     };
     let lose_face_info = match face_info_map.get(req.lose_face_info_id.as_str()) {
         None => {
             return Err(ErrorNotFound("Loser FaceInfo not found!"));
         }
-        Some(lose_face_info) => { lose_face_info }
+        Some(lose_face_info) => lose_face_info,
     };
 
-    let (win_score, lose_score) = compete_uscf(win_face_info.score as EloScore,
-                                               lose_face_info.score as EloScore, WIN);
+    let (win_score, lose_score) = compete_uscf(
+        win_face_info.score as EloScore,
+        lose_face_info.score as EloScore,
+        WIN,
+    );
 
     // Step 3：Update Score
     let now = chrono::Utc::now().timestamp();
-    if let Err(err) = update_face_info_rating(&win_face_info.id,
-                                              win_score as f64, true, req.voter.as_str(), now).await {
+    if let Err(err) = update_face_info_rating(
+        &win_face_info.id,
+        win_score as f64,
+        true,
+        req.voter.as_str(),
+        now,
+    )
+    .await
+    {
         log::error!("Error: {:?}", err);
         return HttpResponse::InternalServerError().await;
     }
-    if let Err(err) = update_face_info_rating(&lose_face_info.id,
-                                              lose_score as f64, false, req.voter.as_str(), now).await {
+    if let Err(err) = update_face_info_rating(
+        &lose_face_info.id,
+        lose_score as f64,
+        false,
+        req.voter.as_str(),
+        now,
+    )
+    .await
+    {
         log::error!("Error: {:?}", err);
         return HttpResponse::InternalServerError().await;
     }
 
     // Step 4: Add vote logs
-    if let Err(err) = add_rating_logs(vec![
-        RatingLog {
-            id: resource::id_generator::get_id().await,
-            win_face_id: win_face_info.id.clone(),
-            loss_face_id: lose_face_info.id.clone(),
-            creator: req.voter.clone(),
-            created_on: now,
-            ..RatingLog::default()
-        },
-    ]).await {
+    if let Err(err) = add_rating_logs(vec![RatingLog {
+        id: resource::id_generator::get_id().await,
+        win_face_id: win_face_info.id.clone(),
+        loss_face_id: lose_face_info.id.clone(),
+        creator: req.voter.clone(),
+        created_on: now,
+        ..RatingLog::default()
+    }])
+    .await
+    {
         log::error!("Error: {:?}", err);
     }
 
