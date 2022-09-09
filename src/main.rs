@@ -8,6 +8,7 @@ use mongodb::bson::doc;
 use crate::controller::{face_info_controller, file_controller};
 use crate::resource::mongo;
 
+mod algorithm;
 mod config;
 mod controller;
 mod dao;
@@ -31,6 +32,7 @@ async fn main() -> std::io::Result<()> {
             .service(face_info_controller::get_face_info_randomly)
             .service(face_info_controller::get_face_info_by_id)
             .service(face_info_controller::add_face_info)
+            .service(face_info_controller::vote_face_info)
             .service(file_controller::create_file_resource_by_stream)
             .service(file_controller::create_file_resource)
             .service(file_controller::download_local_file)
