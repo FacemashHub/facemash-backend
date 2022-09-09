@@ -4,10 +4,12 @@ use serde::{Deserialize, Serialize};
 #[serde(default)]
 pub struct RatingLog {
     pub id: String,
-    pub face_id: String,
-    pub vote_behavior: i32, // -1: LOSS, 0: DRAW, 1: WIN
+    pub win_face_id: String,
+    pub loss_face_id: String,
     pub creator: String,
+    pub updater: String,
     pub created_on: i64,
+    pub updated_on: i64,
     pub deleted_on: i64,
     pub is_deleted: i64,
 }
@@ -16,10 +18,12 @@ impl Default for RatingLog {
     fn default() -> Self {
         RatingLog {
             id: "".to_string(),
-            face_id: "".to_string(),
-            vote_behavior: 0,
+            win_face_id: "".to_string(),
+            loss_face_id: "".to_string(),
             creator: "".to_string(),
+            updater: "".to_string(),
             created_on: 0,
+            updated_on: 0,
             deleted_on: 0,
             is_deleted: 0,
         }

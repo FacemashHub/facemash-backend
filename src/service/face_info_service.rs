@@ -27,19 +27,21 @@ pub async fn add_face_info(face_info: &FaceInfo) -> mongodb::error::Result<Inser
 
 pub async fn update_face_info_rating(
     face_info_id: &str,
-    rating: i32,
+    rating: f64,
     upvote: bool,
+    voter: &str,
+    now: i64,
 ) -> mongodb::error::Result<UpdateResult> {
     let filter_doc = doc! {"id": face_info_id};
 
     let update_doc = if upvote {
         doc! {
-            "$set": {"rating": rating},
+            "$set": {"score": rating, "updater": voter, "updated_on": now},
             "$inc": {"upvote_count": 1},
         }
     } else {
         doc! {
-            "$set": {"rating": rating},
+            "$set": {"score": rating, "updater": voter, "updated_on": now},
             "$inc": {"downvote_count": 1},
         }
     };

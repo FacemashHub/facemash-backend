@@ -1,12 +1,17 @@
-use actix_web::error::{ErrorBadRequest, ErrorInternalServerError};
+use std::collections::HashMap;
+use actix_web::error::{ErrorBadRequest, ErrorInternalServerError, ErrorNotFound};
 use actix_web::{post, web, Error, HttpResponse, Responder};
 use serde::{Deserialize, Serialize};
+use crate::algorithm::elo_rating::{compete_uscf, EloScore, WIN};
 
-use crate::doc;
+use crate::{doc, entity};
+use crate::dao::rating_log_dao::add_rating_logs;
 use crate::entity::face_info::FaceInfo;
 use crate::entity::file_resource::FileResource;
+use crate::entity::rating_log::{RatingLog};
 use crate::resource;
 use crate::service::{face_info_service, file_resource_service};
+use crate::service::face_info_service::update_face_info_rating;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FaceAndFileResourceInfo {
@@ -48,6 +53,7 @@ pub struct AddFaceInfoResp {
 pub struct VoteFaceInfoReq {
     win_face_info_id: String,
     lose_face_info_id: String,
+    voter: String,
 }
 
 #[post("/get_face_info_randomly")]
@@ -70,7 +76,7 @@ pub async fn get_face_info_randomly(
             file_resource: match file_resource_service::get_one_file_resource_by_doc_filter(
                 doc! {"id": &face_info.file_id},
             )
-            .await
+                .await
             {
                 Ok(file_info) => match file_info {
                     None => FileResource::default(),
@@ -118,7 +124,7 @@ pub async fn get_face_info_by_id(
     let file_resource = match file_resource_service::get_one_file_resource_by_doc_filter(
         doc! {"id": &face_info.file_id},
     )
-    .await
+        .await
     {
         Ok(file_info) => match file_info {
             None => FileResource::default(),
@@ -145,6 +151,7 @@ pub async fn add_face_info(mut req: web::Json<AddFaceInfoReq>) -> Result<impl Re
     let face_info_id = resource::id_generator::get_id().await;
     req.face_info.id = face_info_id;
     req.face_info.created_on = chrono::Utc::now().timestamp();
+    req.face_info.score = entity::face_info::DEFAULT_SCORE;
 
     check_add_face_info_param(&req.face_info).await?;
 
@@ -160,17 +167,80 @@ pub async fn add_face_info(mut req: web::Json<AddFaceInfoReq>) -> Result<impl Re
 }
 
 #[post("/vote_face_info")]
-pub async fn vote_face_info(mut req: web::Json<VoteFaceInfoReq>) -> Result<impl Responder, Error> {
+pub async fn vote_face_info(req: web::Json<VoteFaceInfoReq>) -> Result<impl Responder, Error> {
     info!("req: {:?}", &req);
 
-    // Step 1: find corresponding face_info
-    let faceInfos = face_info_service::get_face_infos_by_doc_filter(doc! {
-        {"id": req.win_face_info_id},
-        {"id": req.lose_face_info_id},
-    })
-    .await?;
+    if req.win_face_info_id.is_empty() || req.lose_face_info_id.is_empty() {
+        return Err(ErrorBadRequest("face_info_id is required!"));
+    };
 
-    Ok(())
+    // Step 1: find corresponding face_info
+    let filter_doc = doc! {
+        "id" :{"$in": [req.win_face_info_id.as_str(), req.lose_face_info_id.as_str()]}
+    };
+    let face_info_map: HashMap<String, FaceInfo> = match face_info_service::get_face_infos_by_doc_filter(filter_doc).await {
+        Ok(res) => {
+            if res.len() < 2 {
+                return Err(ErrorNotFound("FaceInfo not found!"));
+            }
+
+            let mut ret_map = HashMap::new();
+            for x in res {
+                ret_map.insert(x.id.clone(), x);
+            }
+            ret_map
+        }
+        Err(err) => {
+            log::error!("Error: {:?}", err);
+            return HttpResponse::InternalServerError().await;
+        }
+    };
+
+    // Step 2：Calculate Score
+    let win_face_info = match face_info_map.get(req.win_face_info_id.as_str()) {
+        None => {
+            return Err(ErrorNotFound("Winner FaceInfo not found!"));
+        }
+        Some(win_face_info) => { win_face_info }
+    };
+    let lose_face_info = match face_info_map.get(req.lose_face_info_id.as_str()) {
+        None => {
+            return Err(ErrorNotFound("Loser FaceInfo not found!"));
+        }
+        Some(lose_face_info) => { lose_face_info }
+    };
+
+    let (win_score, lose_score) = compete_uscf(win_face_info.score as EloScore,
+                                               lose_face_info.score as EloScore, WIN);
+
+    // Step 3：Update Score
+    let now = chrono::Utc::now().timestamp();
+    if let Err(err) = update_face_info_rating(&win_face_info.id,
+                                              win_score as f64, true, req.voter.as_str(), now).await {
+        log::error!("Error: {:?}", err);
+        return HttpResponse::InternalServerError().await;
+    }
+    if let Err(err) = update_face_info_rating(&lose_face_info.id,
+                                              lose_score as f64, false, req.voter.as_str(), now).await {
+        log::error!("Error: {:?}", err);
+        return HttpResponse::InternalServerError().await;
+    }
+
+    // Step 4: Add vote logs
+    if let Err(err) = add_rating_logs(vec![
+        RatingLog {
+            id: resource::id_generator::get_id().await,
+            win_face_id: win_face_info.id.clone(),
+            loss_face_id: lose_face_info.id.clone(),
+            creator: req.voter.clone(),
+            created_on: now,
+            ..RatingLog::default()
+        },
+    ]).await {
+        log::error!("Error: {:?}", err);
+    }
+
+    Ok(HttpResponse::Ok().json(()))
 }
 
 async fn check_add_face_info_param(face_info: &FaceInfo) -> Result<(), Error> {

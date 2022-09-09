@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-const DEFAULT_SCORE: f64 = 1400.0;
+pub const DEFAULT_SCORE: f64 = 1400.0;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
