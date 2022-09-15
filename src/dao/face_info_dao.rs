@@ -58,7 +58,7 @@ pub async fn get_face_info_sample(size: i64) -> Result<Vec<FaceInfo>, mongodb::e
     let mut ret_face_infos: Vec<FaceInfo> = Vec::new();
     let mut results = collection.aggregate(pipeline, None).await?;
     while let Some(result) = results.next().await {
-        // Use serde to deserialize into the MovieSummary struct:
+        // Use serde to deserialize into the FaceInfo struct:
         let face_info: FaceInfo = bson::from_document(result?)?;
         ret_face_infos.push(face_info);
     }
