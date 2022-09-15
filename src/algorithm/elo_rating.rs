@@ -100,8 +100,6 @@ pub fn serial_compete(
 
 #[cfg(test)]
 mod tests {
-    use crate::algorithm::k_factor::*;
-
     use super::*;
 
     #[test]
