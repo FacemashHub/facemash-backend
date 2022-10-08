@@ -1,5 +1,4 @@
 //! Convenience functions for various popular rating systems using elo.
-#![allow(dead_code)]
 
 use crate::algorithm::elo_rating::EloScore;
 
