@@ -6,7 +6,7 @@
 
 use crate::algorithm::k_factor::{fide_k, icc_k, uscf_k};
 
-/// The EloScore type is i32 since a rating can be negative.
+/// The EloScore type
 pub type EloScore = i64;
 
 pub type EloCompeteResult = f64;
